@@ -228,7 +228,7 @@
                 .filter(p => p.isWatched)
                 .filter(p => p.Name.toLowerCase().includes(watchlistSearchTerm.toLowerCase()));
             watchlistContainer.innerHTML = watchlistPlayers.map(p => createPlayerCardHTML(p, 'watchlist')).join('');
-             if (watchlistPlayers.length === 0 && trackedPlayers.size > 0) {
+             if (watchlistPlayers.length === 0 && trackedPlayers.size > 0 && watchlistSearchTerm) {
                 watchlistContainer.innerHTML = `<div class="premium-glass text-center text-gray-500 p-8 rounded-lg"><p>Arama kriterlerinize uyan oyuncu bulunamadı.</p></div>`;
             } else if (allPlayers.filter(p=>p.isWatched).length === 0){
                  watchlistContainer.innerHTML = `<div class="premium-glass text-center text-gray-500 p-8 rounded-lg"><p>Henüz takip edilen oyuncu yok.</p></div>`;
@@ -239,8 +239,8 @@
                 .filter(p => p.isGuildMember)
                 .filter(p => p.Name.toLowerCase().includes(guildSearchTerm.toLowerCase()));
             guildContainer.innerHTML = guildPlayers.map(p => createPlayerCardHTML(p, 'guild')).join('');
-            if (guildPlayers.length === 0 && trackedPlayers.size > 0) {
-                 guildContainer.innerHTML = `<div class="premium-glass text-center text-gray-500 p-8 rounded-lg"><p>Arama kriterlerinize uyan oyuncu bulunamadı veya guild senkronize edilmedi.</p></div>`;
+            if (guildPlayers.length === 0 && trackedPlayers.size > 0 && guildSearchTerm) {
+                 guildContainer.innerHTML = `<div class="premium-glass text-center text-gray-500 p-8 rounded-lg"><p>Arama kriterlerinize uyan oyuncu bulunamadı.</p></div>`;
             } else if(allPlayers.filter(p=>p.isGuildMember).length === 0){
                 guildContainer.innerHTML = `<div class="premium-glass text-center text-gray-500 p-8 rounded-lg"><p>Guild listesi boş. Lütfen senkronize edin.</p></div>`;
             }
@@ -605,7 +605,11 @@
                     const existingPlayer = Array.from(trackedPlayers.values()).find(p => p.currentStats.Id === member.Id);
                     if (!existingPlayer) {
                         newPlayersCount++;
-                        const playerData = await fetchPlayerData(member.Id, true);
+                        // API'den gelen member verisini doğrudan kullan, tekrar fetch yapma. Bu işlem performansı artırır.
+                        const playerData = {
+                            ...member,
+                            Avatar: `https://render.albiononline.com/v1/character/${member.Avatar}.png`
+                        };
                         const newPlayerRef = doc(collection(db, `users/${userId}/trackedPlayers`));
                         batch.set(newPlayerRef, {
                             Name: playerData.Name, initialStats: playerData, currentStats: playerData,
