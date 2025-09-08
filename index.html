@@ -86,16 +86,15 @@
                     </button>
                 </form>
             </div>
+             <!-- Sekme Navigasyonu -->
+            <div class="flex justify-center mt-8 bg-slate-800/50 p-1.5 rounded-xl max-w-md mx-auto">
+                <button data-tab="watchlist" class="tab-btn w-1/2 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300 active">Takip Listem</button>
+                <button data-tab="guild" class="tab-btn w-1/2 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300">Guild Oyuncuları</button>
+            </div>
         </header>
 
         <!-- Ana İçerik -->
         <main>
-             <!-- Sekme Navigasyonu -->
-            <div class="flex justify-center mb-6 bg-slate-800/50 p-1.5 rounded-xl max-w-md mx-auto">
-                <button data-tab="watchlist" class="tab-btn w-1/2 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300 active">Takip Listem</button>
-                <button data-tab="guild" class="tab-btn w-1/2 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300">Guild Oyuncuları</button>
-            </div>
-
             <div id="messageArea" class="text-center mb-6 h-6"></div>
             
             <!-- Takip Listesi İçeriği -->
@@ -110,10 +109,16 @@
             <div id="guild-content" class="tab-content">
                  <div class="flex flex-col sm:flex-row gap-4 mb-4">
                     <input type="text" id="guildSearchInput" placeholder="Guild İçinde Oyuncu Ara..." class="w-full bg-slate-800 border border-sky-500/30 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition duration-300">
-                    <button id="syncGuildBtn" class="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-400 hover:to-teal-400 text-white font-bold py-3 px-5 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-green-900/40 w-full sm:w-auto flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M21 21v-5h-5"/></svg>
-                        <span>Guild'i Senkronize Et</span>
-                    </button>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button id="syncGuildBtn" class="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-400 hover:to-teal-400 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-green-900/40 w-1/2 sm:w-auto flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M21 21v-5h-5"/></svg>
+                            <span class="hidden sm:inline">Senkronize Et</span>
+                        </button>
+                        <button id="bulkCheckGuildBtn" class="bg-gradient-to-r from-sky-500 to-violet-500 hover:from-sky-400 hover:to-violet-400 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-sky-900/40 w-1/2 sm:w-auto flex-shrink-0">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.05 16.05a9 9 0 1 1-12.1-12.1"/><path d="m14.5 9.5-3 3 6 6"/><path d="M12 2v4"/><path d="M12 20v2"/><path d="m4.93 4.93 2.83 2.83"/><path d="m16.24 16.24 2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h2"/><path d="m4.93 19.07 2.83-2.83"/><path d="m16.24 7.76 2.83-2.83"/></svg>
+                           <span class="hidden sm:inline">Toplu Kontrol Et</span>
+                        </button>
+                    </div>
                  </div>
                 <div id="guildPlayerContainer" class="space-y-4"></div>
             </div>
@@ -166,6 +171,7 @@
         const watchlistSearchInput = document.getElementById('watchlistSearchInput');
         const guildSearchInput = document.getElementById('guildSearchInput');
         const syncGuildBtn = document.getElementById('syncGuildBtn');
+        const bulkCheckGuildBtn = document.getElementById('bulkCheckGuildBtn');
         const mainPlayerContainers = document.querySelectorAll('#watchlistPlayerContainer, #guildPlayerContainer');
 
         const DEFAULT_AVATAR = 'https://i.ibb.co/6cbH5Z1j/ghulam-rouhan-samdani-sketch1750596212277-removebg-preview.png';
@@ -588,7 +594,8 @@
 
             const originalButtonContent = syncGuildBtn.innerHTML;
             syncGuildBtn.disabled = true;
-            syncGuildBtn.innerHTML = `<div class="loader"></div><span>Senkronize ediliyor...</span>`;
+            bulkCheckGuildBtn.disabled = true;
+            syncGuildBtn.innerHTML = `<div class="loader"></div><span class="hidden sm:inline">Senkronize ediliyor...</span>`;
             
             try {
                 showMessage("Guild üyeleri çekiliyor...", "info", 5000);
@@ -605,7 +612,6 @@
                     const existingPlayer = Array.from(trackedPlayers.values()).find(p => p.currentStats.Id === member.Id);
                     if (!existingPlayer) {
                         newPlayersCount++;
-                        // API'den gelen member verisini doğrudan kullan, tekrar fetch yapma. Bu işlem performansı artırır.
                         const playerData = {
                             ...member,
                             Avatar: `https://render.albiononline.com/v1/character/${member.Avatar}.png`
@@ -643,9 +649,60 @@
                 showMessage(`Senkronizasyon sırasında hata: ${error.message}`, 'error');
             } finally {
                  syncGuildBtn.disabled = false;
+                 bulkCheckGuildBtn.disabled = false;
                  syncGuildBtn.innerHTML = originalButtonContent;
             }
         });
+        
+        bulkCheckGuildBtn.addEventListener('click', async () => {
+            if (!isAuthReady) return showMessage("Veritabanı bekleniyor.", "error");
+
+            const originalButtonContent = bulkCheckGuildBtn.innerHTML;
+            bulkCheckGuildBtn.disabled = true;
+            syncGuildBtn.disabled = true;
+            bulkCheckGuildBtn.innerHTML = `<div class="loader"></div><span class="hidden sm:inline">Kontrol ediliyor...</span>`;
+            
+            const guildPlayers = Array.from(trackedPlayers.values()).filter(p => p.isGuildMember);
+            if(guildPlayers.length === 0){
+                showMessage('Kontrol edilecek guild oyuncusu bulunamadı.', 'error');
+                bulkCheckGuildBtn.disabled = false;
+                syncGuildBtn.disabled = false;
+                bulkCheckGuildBtn.innerHTML = originalButtonContent;
+                return;
+            }
+
+            try {
+                showMessage(`Toplu kontrol başlatıldı: ${guildPlayers.length} oyuncu...`, 'info', 60000);
+                const batch = writeBatch(db);
+                for(let i = 0; i < guildPlayers.length; i++){
+                    const player = guildPlayers[i];
+                    showMessage(`Kontrol ediliyor ${i + 1}/${guildPlayers.length}: ${player.Name}...`, 'info', 60000);
+                    try {
+                        const newStats = await fetchPlayerData(player.Name);
+                        const newHistoryEntry = { stats: newStats, timestamp: Date.now() };
+                        const updatedHistory = [...(player.history || []), newHistoryEntry];
+                        const playerRef = doc(db, `users/${userId}/trackedPlayers/${player.id}`);
+                        batch.update(playerRef, { 
+                            currentStats: newStats, 
+                            history: updatedHistory 
+                        });
+                    } catch (err) {
+                        console.error(`Oyuncu ${player.Name} güncellenirken hata:`, err.message);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 200)); // Rate limiting
+                }
+                await batch.commit();
+                showMessage(`Toplu kontrol tamamlandı! ${guildPlayers.length} oyuncu güncellendi.`, 'info');
+
+            } catch (error) {
+                 showMessage(`Toplu kontrol sırasında bir hata oluştu: ${error.message}`, 'error');
+            } finally {
+                bulkCheckGuildBtn.disabled = false;
+                syncGuildBtn.disabled = false;
+                bulkCheckGuildBtn.innerHTML = originalButtonContent;
+            }
+        });
+
 
         // --- Authentication ---
         onAuthStateChanged(auth, async (user) => {
