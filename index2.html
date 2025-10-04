@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Albion Online Oyuncu Takip Aracı</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(320deg, #0f172a, #1e293b, #334155);
+            background-size: 400% 400%;
+            animation: gradient-animation 15s ease infinite;
+        }
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .fame-diff.positive { color: #4ade80; } /* green-400 */
+        .fame-diff.positive::before { content: '+'; }
+        .fame-diff.zero { color: #94a3b8; } /* slate-400 */
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #38bdf8; /* sky-400 */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .details-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .details-section.open {
+            max-height: 4000px;
+        }
+        .player-card-header {
+            cursor: pointer;
+        }
+        .premium-glass {
+            background-color: rgba(30, 41, 59, 0.6); /* slate-800/60 */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.25); /* sky-400/25 */
+        }
+        .tab-btn {
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen p-4 sm:p-6 lg:p-8">
+
+    <div class="w-full max-w-6xl mx-auto">
+        <header class="p-4 sm:p-6 premium-glass rounded-xl">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                     <img src="https://i.hizliresim.com/mred25t.png" alt="Albion Online Logo" class="h-12 w-auto">
+                     <div>
+                        <h1 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-sky-400 to-violet-400 text-transparent bg-clip-text">Albion Online Takip Aracı</h1>
+                        <p class="text-xs sm:text-sm text-gray-400">Oyuncuların gelişimini anlık takip edin.</p>
+                     </div>
+                </div>
+                <form id="addPlayerForm" class="flex-grow flex flex-col sm:flex-row gap-3 w-full md:w-auto md:max-w-md">
+                    <input type="text" id="playerNameInput" placeholder="Takip Listesine Oyuncu Ekle..." class="flex-grow bg-slate-800 border border-sky-500/30 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition duration-300">
+                    <button type="submit" class="bg-gradient-to-r from-sky-500 to-violet-500 hover:from-sky-400 hover:to-violet-400 text-white font-bold py-3 px-5 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-sky-900/40">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                        <span>Ekle</span>
+                    </button>
+                </form>
+            </div>
+             <div class="mt-6 border-t border-sky-500/20 pt-4">
+                 <div class="flex justify-center bg-slate-900/50 p-1.5 rounded-xl max-w-lg mx-auto">
+                    <button data-tab="watchlist" class="tab-btn w-1/3 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300 active">Takip Listem</button>
+                    <button data-tab="guild" class="tab-btn w-1/3 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300">Guild Oyuncuları</button>
+                    <button data-tab="reports" class="tab-btn w-1/3 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300">Raporlar</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="mt-8">
+            <div id="messageArea" class="text-center mb-6 h-6"></div>
+            
+            <div id="watchlist-content" class="tab-content active">
+                <div class="mb-4">
+                     <input type="text" id="watchlistSearchInput" placeholder="Takip Listesinde Oyuncu Ara..." class="w-full bg-slate-800 border border-sky-500/30 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition duration-300">
+                </div>
+                <div id="watchlistPlayerContainer" class="space-y-4"></div>
+            </div>
+
+            <div id="guild-content" class="tab-content">
+                 <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                    <input type="text" id="guildSearchInput" placeholder="Guild İçinde Oyuncu Ara..." class="w-full bg-slate-800 border border-sky-500/30 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition duration-300">
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button id="syncGuildBtn" class="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-400 hover:to-teal-400 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-green-900/40 w-1/2 sm:w-auto flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M21 21v-5h-5"/></svg>
+                            <span class="hidden sm:inline">Senkronize Et</span>
+                        </button>
+                        <button id="bulkCheckGuildBtn" class="bg-gradient-to-r from-sky-500 to-violet-500 hover:from-sky-400 hover:to-violet-400 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-sky-900/40 w-1/2 sm:w-auto flex-shrink-0">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.05 16.05a9 9 0 1 1-12.1-12.1"/><path d="m14.5 9.5-3 3 6 6"/><path d="M12 2v4"/><path d="M12 20v2"/><path d="m4.93 4.93 2.83 2.83"/><path d="m16.24 16.24 2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h2"/><path d="m4.93 19.07 2.83-2.83"/><path d="m16.24 7.76 2.83-2.83"/></svg>
+                           <span class="hidden sm:inline">Toplu Kontrol Et</span>
+                        </button>
+                    </div>
+                 </div>
+                <div id="guildPlayerContainer" class="space-y-4"></div>
+            </div>
+
+            <div id="reports-content" class="tab-content">
+                <div class="premium-glass p-6 rounded-xl">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-white">Raporlar ve İstatistikler</h2>
+                        <button id="refreshReportsBtn" class="bg-gradient-to-r from-sky-500 to-violet-500 hover:from-sky-400 hover:to-violet-400 text-white font-bold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-sky-900/40">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                            <span>Yenile</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div id="pvp-leaderboard" class="bg-black/20 p-4 rounded-lg"></div>
+                        <div id="pve-leaderboard" class="bg-black/20 p-4 rounded-lg"></div>
+                        <div id="gathering-leaderboard" class="bg-black/20 p-4 rounded-lg"></div>
+                        <div id="crafting-leaderboard" class="bg-black/20 p-4 rounded-lg"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 space-y-6">
+                             <div id="kda-leaderboard" class="bg-black/20 p-4 rounded-lg"></div>
+                             <div id="gatherers-list" class="bg-black/20 p-4 rounded-lg"></div>
+                        </div>
+                        <div id="guild-stats" class="bg-black/20 p-4 rounded-lg lg:col-span-1"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="text-center text-gray-500 mt-8 text-sm">
+            <p>Bu araç Albion Online API'ını kullanmaktadır. Veriler anlık olarak çekilmektedir.</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, writeBatch, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Sizin Firebase Projenizin Bilgileri ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAmTPTgLypLfhBgERcVtKapPb6DkKQkMMs",
+            authDomain: "oyuncutakip.firebaseapp.com",
+            projectId: "oyuncutakip",
+            storageBucket: "oyuncutakip.appspot.com",
+            messagingSenderId: "501430692368",
+            appId: "1:501430692368:web:0dcc78b07ca287117b3895"
+        };
+        
+        // --- Kodun Geri Kalanı ---
+        const GUILD_ID = 'MsXlz1fUQFySJSqG4HiGbA';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let userId = null;
+        let isAuthReady = false;
+        let unsubscribe;
+        let trackedPlayers = new Map();
+        
+        let activeTab = 'watchlist';
+        let watchlistSearchTerm = '';
+        let guildSearchTerm = '';
+
+        // DOM Elements
+        const messageArea = document.getElementById('messageArea');
+        const addPlayerForm = document.getElementById('addPlayerForm');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const watchlistContainer = document.getElementById('watchlistPlayerContainer');
+        const guildContainer = document.getElementById('guildPlayerContainer');
+        const watchlistSearchInput = document.getElementById('watchlistSearchInput');
+        const guildSearchInput = document.getElementById('guildSearchInput');
+        const syncGuildBtn = document.getElementById('syncGuildBtn');
+        const bulkCheckGuildBtn = document.getElementById('bulkCheckGuildBtn');
+        const mainPlayerContainers = document.querySelectorAll('#watchlistPlayerContainer, #guildPlayerContainer');
+        const refreshReportsBtn = document.getElementById('refreshReportsBtn');
+
+        const DEFAULT_AVATAR = 'https://i.ibb.co/6cbH5Z1j/ghulam-rouhan-samdani-sketch1750596212277-removebg-preview.png';
+        const ICONS = {
+            kill: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-400"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`,
+            death: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><circle cx="12" cy="12" r="10" /><path d="M16 16s-1.5-2-4-2-4 2-4 2" /><path d="M9 9h.01" /><path d="M15 9h.01" /></svg>`,
+            pve: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><path d="m15.2 3.8-2.2 2.2" /><path d="m6.8 12.2-2.2 2.2" /><path d="m12.2 6.8-2.2 2.2" /><path d="m3.8 15.2-2.2 2.2" /><path d="M22 2 12 12" /><path d="m18 2 4 4" /><path d="m12.2 17.2 4.6-4.6" /><path d="m17.2 12.2 4.6-4.6" /><path d="m2 18 4 4" /><path d="m6.8 12.2-4.6 4.6" /><path d="m2 6 4-4" /><path d="m6.8 2 4.6 4.6" /></svg>`,
+            gathering: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-400"><path d="M14 14.38V22a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V12c0-4.42 3.58-8 8-8 1.53 0 2.94.43 4.14 1.14" /><path d="M14.14 1.14a8.013 8.013 0 0 1 5.72 5.72" /><path d="M20 22a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-4v4h4Z" /></svg>`,
+            crafting: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400"><path d="m15 12-8.373 8.373a1 1 0 1 1-1.414-1.414L12.172 12l-1.414-1.414a1 1 0 1 1 1.414-1.414L15 12Z" /><path d="M9.828 12 4.242 6.414a1 1 0 1 1 1.414-1.414L12 10.172l1.414-1.414a1 1 0 1 1 1.414 1.414L9.828 12Z" /><path d="m21.172 12-5.586 5.586a1 1 0 1 1-1.414-1.414L18.344 12l-1.414-1.414a1 1 0 1 1 1.414-1.414L21.172 12Z" /></svg>`
+        };
+
+        function showMessage(text, type = 'info', duration = 3000) {
+            const color = type === 'error' ? 'text-red-400' : 'text-green-400';
+            messageArea.innerHTML = `<p class="${color}">${text}</p>`;
+            setTimeout(() => messageArea.innerHTML = '', duration);
+        }
+
+        function formatNumber(num) {
+            if (num === null || num === undefined) return '0';
+            return num.toLocaleString('tr-TR');
+        }
+
+        const CORS_PROXY_URL = 'https://proxy.cors.sh/';
+        const ALBION_API_BASE_URL = 'https://gameinfo-ams.albiononline.com/api/gameinfo/';
+        const CORS_API_KEY = 'temp_4440f8d35b421357eba8ea99c9e346be';
+        const headers = { 'x-cors-api-key': CORS_API_KEY };
+
+        async function apiFetch(endpoint) {
+            const url = `${CORS_PROXY_URL}${ALBION_API_BASE_URL}${endpoint}`;
+            const response = await fetch(url, { headers });
+            if (!response.ok) throw new Error(`API Hatası: ${endpoint}`);
+            return response.json();
+        }
+
+        async function fetchPlayerData(playerNameOrId, isId = false) {
+             if (isId) {
+                const playerData = await apiFetch(`players/${playerNameOrId}`);
+                return { ...playerData, Avatar: `https://render.albiononline.com/v1/character/${playerData.Avatar}.png`};
+            }
+            const searchData = await apiFetch(`search?q=${encodeURIComponent(playerNameOrId)}`);
+            const playerInfo = searchData.players.find(p => p.Name.toLowerCase() === playerNameOrId.toLowerCase());
+            if (!playerInfo) throw new Error(`'${playerNameOrId}' adında bir oyuncu bulunamadı.`);
+            const playerData = await apiFetch(`players/${playerInfo.Id}`);
+            return { ...playerData, Avatar: `https://render.albiononline.com/v1/character/${playerInfo.Avatar}.png` };
+        }
+        
+        async function fetchPlayerDetails(playerId) {
+            const [deaths, kills] = await Promise.all([
+                apiFetch(`players/${playerId}/deaths`),
+                apiFetch(`players/${playerId}/kills`)
+            ]);
+            return { deaths, kills };
+        }
+        
+        function renderContent() {
+             if (activeTab === 'reports') {
+                renderReports();
+                return;
+            }
+            const allPlayers = Array.from(trackedPlayers.values()).sort((a, b) => a.Name.localeCompare(b.Name));
+            
+            // Render Watchlist
+            const watchlistPlayers = allPlayers
+                .filter(p => p.isWatched)
+                .filter(p => p.Name.toLowerCase().includes(watchlistSearchTerm.toLowerCase()));
+            watchlistContainer.innerHTML = watchlistPlayers.map(p => createPlayerCardHTML(p, 'watchlist')).join('');
+             if (watchlistPlayers.length === 0 && trackedPlayers.size > 0 && watchlistSearchTerm) {
+                watchlistContainer.innerHTML = `<div class="premium-glass text-center text-gray-500 p-8 rounded-lg"><p>Arama kriterlerinize uyan oyuncu bulunamadı.</p></div>`;
+            } else if (allPlayers.filter(p=>p.isWatched).length === 0){
+                 watchlistContainer.innerHTML = `<div class="premium-glass text-center text-gray-500 p-8 rounded-lg"><p>Henüz takip edilen oyuncu yok.</p></div>`;
+            }
+
+            // Render Guild List
+            const guildPlayers = allPlayers
+                .filter(p => p.isGuildMember)
+                .filter(p => p.Name.toLowerCase().includes(guildSearchTerm.toLowerCase()));
+            guildContainer.innerHTML = guildPlayers.map(p => createPlayerCardHTML(p, 'guild')).join('');
+            if (guildPlayers.length === 0 && trackedPlayers.size > 0 && guildSearchTerm) {
+                 guildContainer.innerHTML = `<div class="premium-glass text-center text-gray-500 p-8 rounded-lg"><p>Arama kriterlerinize uyan oyuncu bulunamadı.</p></div>`;
+            } else if(allPlayers.filter(p=>p.isGuildMember).length === 0){
+                guildContainer.innerHTML = `<div class="premium-glass text-center text-gray-500 p-8 rounded-lg"><p>Guild listesi boş. Lütfen senkronize edin.</p></div>`;
+            }
+        }
+
+
+        function createPlayerCardHTML(player, source) {
+            const initial = player.initialStats;
+            const current = player.currentStats;
+            const getDiffClass = (diff) => diff > 0 ? 'positive' : 'zero';
+            const fameDiffs = {
+                kill: current.KillFame - initial.KillFame,
+                pve: current.LifetimeStatistics.PvE.Total - initial.LifetimeStatistics.PvE.Total,
+                gathering: (current.LifetimeStatistics.Gathering.All?.Total || 0) - (initial.LifetimeStatistics.Gathering.All?.Total || 0),
+                crafting: current.LifetimeStatistics.Crafting.Total - initial.LifetimeStatistics.Crafting.Total
+            };
+
+            const deleteButtonHTML = source === 'watchlist' ? 
+            `<button data-id="${player.id}" class="delete-btn bg-slate-700/50 hover:bg-red-500/50 text-slate-300 hover:text-white text-sm font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>` : '';
+
+            return `
+            <div class="premium-glass rounded-xl hover:border-sky-400/50 transition-colors duration-300" id="card-${player.id}">
+                <div class="player-card-header p-5">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-4 self-start">
+                            <div class="relative w-16 h-16 flex-shrink-0">
+                                <img src="${current.Avatar}" alt="Avatar" class="w-16 h-16 rounded-full" onerror="this.onerror=null;this.src='${DEFAULT_AVATAR}';">
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-white">${current.Name}</h2>
+                                <p class="text-sm text-gray-400">Eklendi: ${new Date(player.createdAt).toLocaleDateString('tr-TR')}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 flex-shrink-0">
+                            <button data-id="${player.id}" class="check-btn bg-gradient-to-r from-sky-500 to-violet-500 hover:from-sky-400 hover:to-violet-400 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg shadow-sky-900/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                <span>Kontrol Et</span>
+                            </button>
+                            ${deleteButtonHTML}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-6 text-center">
+                        ${createFameBlock(ICONS.kill, 'Kill Fame', current.KillFame, fameDiffs.kill, getDiffClass)}
+                        ${createFameBlock(ICONS.pve, 'PvE Fame', current.LifetimeStatistics.PvE.Total, fameDiffs.pve, getDiffClass)}
+                        ${createFameBlock(ICONS.gathering, 'Toplayıcılık', current.LifetimeStatistics.Gathering.All?.Total || 0, fameDiffs.gathering, getDiffClass)}
+                        ${createFameBlock(ICONS.crafting, 'Üretim', current.LifetimeStatistics.Crafting.Total, fameDiffs.crafting, getDiffClass)}
+                        <div class="bg-black/20 p-3 rounded-lg col-span-2 sm:col-span-1"><p class="text-sm text-gray-400 flex items-center justify-center gap-2">${ICONS.death}Death Fame</p><p class="text-lg font-semibold">${formatNumber(current.DeathFame)}</p><p class="text-md text-gray-400">Oran: ${current.FameRatio}</p></div>
+                    </div>
+                </div>
+                <div class="details-section" data-player-id="${player.id}">
+                    <div class="p-5 border-t border-sky-500/20">
+                        <div class="details-content text-center"><div class="loader mx-auto"></div></div>
+                    </div>
+                </div>
+            </div>`;
+        }
+        
+        // --- Other render functions (createFameBlock, renderPlayerDetails, etc.) are identical and omitted for brevity ---
+        function createFameBlock(icon, title, value, diff, getClass) {
+            return `<div class="bg-black/20 p-3 rounded-lg"><p class="text-sm text-gray-400 flex items-center justify-center gap-2">${icon} ${title}</p><p class="text-lg font-semibold">${formatNumber(value)}</p><p class="text-md font-bold fame-diff ${getClass(diff)}">${formatNumber(diff)}</p></div>`;
+        }
+        
+        function renderPlayerDetails(container, player) {
+            const { currentStats, details } = player;
+            const stats = currentStats.LifetimeStatistics || {};
+            const pve = stats.PvE || {};
+            const gathering = stats.Gathering || {};
+            const crafting = stats.Crafting || {};
+            const fishing = stats.Fishing || {};
+            const farming = stats.Farming || {};
+
+            const createStatRow = (label, value) => `<div class="flex justify-between items-center border-b border-white/10 py-1.5"><span class="text-gray-300">${label}</span><span class="font-semibold text-white">${formatNumber(value)}</span></div>`;
+
+            container.innerHTML = `
+                <div class="mb-6">
+                    <h3 class="font-bold text-lg text-sky-400 mb-3 flex items-center gap-2">${ICONS.pve} Yaşam Boyu İstatistikler</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-black/20 p-4 rounded-lg">
+                            <h4 class="font-bold text-md text-sky-400 mb-3 flex items-center gap-2">${ICONS.pve} PvE Fame</h4>
+                            <div class="space-y-1 text-sm">${createStatRow('Total', pve.Total)}${createStatRow('Royal', pve.Royal)}${createStatRow('Outlands', pve.Outlands)}${createStatRow('Avalon', pve.Avalon)}</div>
+                        </div>
+                        <div class="bg-black/20 p-4 rounded-lg">
+                            <h4 class="font-bold text-md text-green-400 mb-3 flex items-center gap-2">${ICONS.gathering} Gathering</h4>
+                            <div class="space-y-1 text-sm">${createStatRow('Fiber', gathering.Fiber?.Total)}${createStatRow('Hide', gathering.Hide?.Total)}${createStatRow('Ore', gathering.Ore?.Total)}${createStatRow('Rock', gathering.Rock?.Total)}${createStatRow('Wood', gathering.Wood?.Total)}<div class="border-t-2 border-green-400/20 my-2"></div>${createStatRow('All', gathering.All?.Total)}</div>
+                        </div>
+                        <div class="bg-black/20 p-4 rounded-lg">
+                            <h4 class="font-bold text-md text-amber-400 mb-3 flex items-center gap-2">${ICONS.crafting} Crafting</h4>
+                            <div class="space-y-1 text-sm">${createStatRow('Total', crafting.Total)}${createStatRow('Royal', crafting.Royal)}${createStatRow('Outlands', crafting.Outlands)}${createStatRow('Avalon', crafting.Avalon)}${createStatRow('Fishing', fishing.Total)}${createStatRow('Farming', farming.Total)}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div class="bg-black/20 p-4 rounded-lg">
+                        <h3 class="font-bold text-lg text-red-400 mb-3 flex items-center gap-2">${ICONS.death} Son Ölümler</h3>
+                        ${createEventTable(details.deaths, 'Killer')}
+                    </div>
+                    <div class="bg-black/20 p-4 rounded-lg">
+                        <h3 class="font-bold text-lg text-green-400 mb-3 flex items-center gap-2">${ICONS.kill} Son Öldürmeler</h3>
+                        ${createEventTable(details.kills, 'Victim')}
+                    </div>
+                </div>
+                <div class="bg-black/20 p-4 rounded-lg mt-6">
+                    <h3 class="font-bold text-lg text-sky-400 mb-3">Oyuncu Notları</h3>
+                    <textarea data-id="${player.id}" class="notes-textarea w-full bg-slate-800 border border-sky-500/30 rounded-lg p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500" rows="4" placeholder="Oyuncu hakkında notlar ekleyin... (Build, görev vb.)">${player.notes || ''}</textarea>
+                    <button data-id="${player.id}" class="save-note-btn mt-3 bg-gradient-to-r from-sky-500 to-violet-500 hover:from-sky-400 hover:to-violet-400 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg shadow-sky-900/40">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        <span>Notu Kaydet</span>
+                    </button>
+                </div>
+                ${renderComparisonHistory(player)}
+            `;
+        }
+
+        function renderComparisonHistory(player) {
+            const { history, initialStats, currentStats } = player;
+            if (!history || history.length < 2) {
+                return '<div class="bg-black/20 p-4 rounded-lg mt-6"><h3 class="font-bold text-lg text-sky-400 mb-3">Gelişim Geçmişi</h3><p class="text-gray-400 text-sm">Karşılaştırma yapmak için oyuncuyu en az bir kez daha kontrol etmelisiniz.</p></div>';
+            }
+            const calcPercentage = (initial, current) => {
+                if (initial === 0) return current > 0 ? '∞' : '0.0';
+                const increase = ((current - initial) / initial) * 100;
+                return increase.toFixed(1);
+            };
+            const initial = initialStats.LifetimeStatistics;
+            const current = currentStats.LifetimeStatistics;
+            const summaryHTML = `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-center">
+                    <div class="bg-slate-800 p-2 rounded"><p class="text-xs text-gray-400">Kill Fame Artış</p><p class="font-bold text-green-400">${calcPercentage(initialStats.KillFame, currentStats.KillFame)}%</p></div>
+                    <div class="bg-slate-800 p-2 rounded"><p class="text-xs text-gray-400">PvE Fame Artış</p><p class="font-bold text-green-400">${calcPercentage(initial.PvE.Total, current.PvE.Total)}%</p></div>
+                    <div class="bg-slate-800 p-2 rounded"><p class="text-xs text-gray-400">Toplayıcılık Artış</p><p class="font-bold text-green-400">${calcPercentage(initial.Gathering.All.Total, current.Gathering.All.Total)}%</p></div>
+                    <div class="bg-slate-800 p-2 rounded"><p class="text-xs text-gray-400">Üretim Artış</p><p class="font-bold text-green-400">${calcPercentage(initial.Crafting.Total, current.Crafting.Total)}%</p></div>
+                </div>`;
+            const historyHTML = history.slice().reverse().map(entry => {
+                const s = entry.stats;
+                return `<div class="bg-slate-800 p-3 rounded-lg mb-2">
+                    <p class="font-semibold text-sky-400/80 mb-2">Tarih: ${new Date(entry.timestamp).toLocaleString('tr-TR')}</p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                        <p><strong>Kill Fame:</strong> ${formatNumber(s.KillFame)}</p><p><strong>Death Fame:</strong> ${formatNumber(s.DeathFame)}</p>
+                        <p><strong>PvE Toplam:</strong> ${formatNumber(s.LifetimeStatistics.PvE.Total)}</p><p><strong>Toplayıcılık:</strong> ${formatNumber(s.LifetimeStatistics.Gathering.All.Total)}</p>
+                    </div></div>`;
+            }).join('');
+
+            return `<div class="bg-black/20 p-4 rounded-lg mt-6">
+                        <h3 class="font-bold text-lg text-sky-400 mb-3">Gelişim Geçmişi</h3>${summaryHTML}<div class="max-h-64 overflow-y-auto pr-2">${historyHTML}</div>
+                    </div>`;
+        }
+
+        function createEventTable(events, type) {
+            if (!events || events.length === 0) return `<p class="text-gray-500">Son aktivite bulunamadı.</p>`;
+            return `<div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-gray-400 uppercase bg-black/20"><tr><th scope="col" class="px-4 py-2">${type}</th><th scope="col" class="px-4 py-2">Tarih</th><th scope="col" class="px-4 py-2">Fame</th></tr></thead>
+                    <tbody>${events.map(e => `<tr class="border-b border-white/10"><td class="px-4 py-2 font-medium">${e[type].Name}</td><td class="px-4 py-2">${new Date(e.TimeStamp).toLocaleString('tr-TR')}</td><td class="px-4 py-2">${formatNumber(e.KillFame)}</td></tr>`).join('')}</tbody>
+                </table></div>`;
+        }
+        
+        // --- Firestore Logic ---
+        function listenForPlayerChanges() {
+            if (unsubscribe) unsubscribe();
+            const q = collection(db, `users/${userId}/trackedPlayers`);
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const data = { id: change.doc.id, ...change.doc.data() };
+                    const existingData = trackedPlayers.get(data.id) || {};
+                    // Handle legacy data
+                    if (data.isWatched === undefined && data.isGuildMember === undefined) {
+                        data.isWatched = true;
+                    }
+                    if (change.type === "added" || change.type === "modified") {
+                        trackedPlayers.set(data.id, {...existingData, ...data});
+                    } else if (change.type === "removed") {
+                        trackedPlayers.delete(change.doc.id);
+                    }
+                });
+                renderContent();
+            }, (error) => console.error("Firestore error:", error));
+        }
+
+        async function findDbPlayerByName(playerName) {
+            const q = query(collection(db, `users/${userId}/trackedPlayers`), where("Name", "==", playerName));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const doc = querySnapshot.docs[0];
+                return { id: doc.id, ...doc.data() };
+            }
+            return null;
+        }
+
+        async function handleAddPlayerToWatchlist(playerData) {
+            const existingPlayer = await findDbPlayerByName(playerData.Name);
+            if(existingPlayer) {
+                 await updateDoc(doc(db, `users/${userId}/trackedPlayers/${existingPlayer.id}`), { isWatched: true });
+                 showMessage(`'${playerData.Name}' zaten veritabanında vardı, takip listesine eklendi.`, 'info');
+            } else {
+                await addDoc(collection(db, `users/${userId}/trackedPlayers`), {
+                    Name: playerData.Name, initialStats: playerData, currentStats: playerData,
+                    createdAt: Date.now(), history: [{ stats: playerData, timestamp: Date.now() }], notes: "",
+                    isWatched: true, isGuildMember: false
+                });
+                showMessage(`'${playerData.Name}' başarıyla takip listesine eklendi!`, 'info');
+            }
+        }
+       
+        async function updatePlayerInDB(player, newStats) {
+            const newHistoryEntry = { stats: newStats, timestamp: Date.now() };
+            const updatedHistory = [...(player.history || []), newHistoryEntry];
+            await updateDoc(doc(db, `users/${userId}/trackedPlayers/${player.id}`), { 
+                currentStats: newStats, history: updatedHistory
+            });
+        }
+        async function updatePlayerNotesInDB(playerId, newNotes) {
+            await updateDoc(doc(db, `users/${userId}/trackedPlayers/${playerId}`), { notes: newNotes });
+        }
+        
+        async function handleRemovePlayerFromWatchlist(player) {
+            if (player.isGuildMember) {
+                 await updateDoc(doc(db, `users/${userId}/trackedPlayers/${player.id}`), { isWatched: false });
+                 showMessage(`'${player.Name}' takip listesinden kaldırıldı (Guild üyesi olduğu için veritabanında kalacak).`, 'info');
+            } else {
+                await deleteDoc(doc(db, `users/${userId}/trackedPlayers/${player.id}`));
+                 showMessage(`'${player.Name}' kalıcı olarak silindi.`, 'info');
+            }
+        }
+
+        // --- Event Listeners ---
+        addPlayerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!isAuthReady) return showMessage("Veritabanı bekleniyor.", "error");
+            const playerName = playerNameInput.value.trim();
+            if (!playerName) return showMessage("Lütfen bir oyuncu adı girin.", "error");
+            
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalButtonContent = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<div class="loader"></div>`;
+            try {
+                const playerData = await fetchPlayerData(playerName);
+                await handleAddPlayerToWatchlist(playerData);
+                playerNameInput.value = '';
+            } catch (error) {
+                showMessage(error.message, 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonContent;
+            }
+        });
+
+        mainPlayerContainers.forEach(container => {
+             container.addEventListener('click', async (e) => {
+                if (!isAuthReady) return showMessage("Veritabanı bekleniyor.", "error");
+                const header = e.target.closest('.player-card-header');
+                const checkBtn = e.target.closest('.check-btn');
+                const deleteBtn = e.target.closest('.delete-btn');
+                const saveNoteBtn = e.target.closest('.save-note-btn');
+
+                if (checkBtn) {
+                    e.stopPropagation();
+                    const playerId = checkBtn.dataset.id;
+                    const player = trackedPlayers.get(playerId);
+                    const originalButtonContent = checkBtn.innerHTML;
+                    checkBtn.disabled = true;
+                    checkBtn.innerHTML = `<div class="loader !w-4 !h-4 !border-2"></div>`;
+                    try {
+                        const newStats = await fetchPlayerData(player.Name);
+                        await updatePlayerInDB(player, newStats);
+                        showMessage(`'${player.Name}' verileri güncellendi.`, 'info');
+                    } catch (error) { showMessage(error.message, 'error'); }
+                    finally { checkBtn.disabled = false; checkBtn.innerHTML = originalButtonContent; }
+                }
+
+                if (deleteBtn) {
+                    e.stopPropagation();
+                    const playerId = deleteBtn.dataset.id;
+                    const player = trackedPlayers.get(playerId);
+                    if (confirm(`'${player.Name}' adlı oyuncuyu takip listesinden kaldırmak istediğinize emin misiniz?`)) {
+                        await handleRemovePlayerFromWatchlist(player);
+                    }
+                }
+
+                if (saveNoteBtn) {
+                    e.stopPropagation();
+                    const playerId = saveNoteBtn.dataset.id;
+                    const card = saveNoteBtn.closest('.premium-glass');
+                    const notesTextarea = card.querySelector(`.notes-textarea[data-id="${playerId}"]`);
+                    const newNotes = notesTextarea.value;
+                    const originalButtonContent = saveNoteBtn.innerHTML;
+                    saveNoteBtn.disabled = true;
+                    saveNoteBtn.innerHTML = `<div class="loader !w-4 !h-4 !border-2"></div>`;
+                    try {
+                        await updatePlayerNotesInDB(playerId, newNotes);
+                        showMessage('Not başarıyla kaydedildi.', 'info');
+                    } catch (error) { showMessage('Not kaydedilirken bir hata oluştu.', 'error'); }
+                    finally { saveNoteBtn.disabled = false; saveNoteBtn.innerHTML = originalButtonContent; }
+                }
+
+                if (header) {
+                    const card = header.closest('.premium-glass');
+                    const detailsSection = card.querySelector('.details-section');
+                    const playerId = detailsSection.dataset.playerId;
+                    const player = trackedPlayers.get(playerId);
+                    const contentDiv = detailsSection.querySelector('.details-content');
+                    const isOpen = detailsSection.classList.toggle('open');
+                    const wasAlreadyLoaded = player.details;
+                    if (isOpen && !wasAlreadyLoaded) {
+                        try {
+                            const details = await fetchPlayerDetails(player.currentStats.Id);
+                            player.details = details;
+                            trackedPlayers.set(playerId, player);
+                            renderPlayerDetails(contentDiv, player);
+                        } catch (error) {
+                            contentDiv.innerHTML = `<p class="text-red-400">Detaylar yüklenemedi.</p>`;
+                            showMessage(error.message, 'error');
+                        }
+                    } else if (isOpen && wasAlreadyLoaded) {
+                        renderPlayerDetails(contentDiv, player);
+                    }
+                }
+            });
+        });
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tab = button.dataset.tab;
+                activeTab = tab;
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(`${tab}-content`).classList.add('active');
+                renderContent();
+            });
+        });
+
+        watchlistSearchInput.addEventListener('input', (e) => {
+            watchlistSearchTerm = e.target.value;
+            renderContent();
+        });
+        guildSearchInput.addEventListener('input', (e) => {
+            guildSearchTerm = e.target.value;
+            renderContent();
+        });
+
+        syncGuildBtn.addEventListener('click', async () => {
+             if (!isAuthReady) return showMessage("Veritabanı bekleniyor.", "error");
+
+            const originalButtonContent = syncGuildBtn.innerHTML;
+            syncGuildBtn.disabled = true;
+            bulkCheckGuildBtn.disabled = true;
+            syncGuildBtn.innerHTML = `<div class="loader"></div><span class="hidden sm:inline">Senkronize ediliyor...</span>`;
+            
+            try {
+                showMessage("Guild üyeleri çekiliyor...", "info", 5000);
+                const guildMembers = await apiFetch(`guilds/${GUILD_ID}/members`);
+                showMessage(`${guildMembers.length} üye bulundu. Veritabanı ile karşılaştırılıyor...`, "info", 5000);
+
+                const batch = writeBatch(db);
+                const apiMemberIds = new Set(guildMembers.map(m => m.Id));
+                const dbGuildPlayers = Array.from(trackedPlayers.values()).filter(p => p.isGuildMember);
+
+                // Find players to add or update
+                let newPlayersCount = 0;
+                for (const member of guildMembers) {
+                    const existingPlayer = Array.from(trackedPlayers.values()).find(p => p.currentStats.Id === member.Id);
+                    if (!existingPlayer) {
+                        newPlayersCount++;
+                        const playerData = {
+                            ...member,
+                            Avatar: `https://render.albiononline.com/v1/character/${member.Avatar}.png`
+                        };
+                        const newPlayerRef = doc(collection(db, `users/${userId}/trackedPlayers`));
+                        batch.set(newPlayerRef, {
+                            Name: playerData.Name, initialStats: playerData, currentStats: playerData,
+                            createdAt: Date.now(), history: [{ stats: playerData, timestamp: Date.now() }], notes: "",
+                            isWatched: false, isGuildMember: true
+                        });
+                    } else if (!existingPlayer.isGuildMember) {
+                        const playerRef = doc(db, `users/${userId}/trackedPlayers/${existingPlayer.id}`);
+                        batch.update(playerRef, { isGuildMember: true });
+                    }
+                }
+
+                // Find players to remove from guild list
+                let removedCount = 0;
+                for (const dbPlayer of dbGuildPlayers) {
+                    if (!apiMemberIds.has(dbPlayer.currentStats.Id)) {
+                        removedCount++;
+                        const playerRef = doc(db, `users/${userId}/trackedPlayers/${dbPlayer.id}`);
+                        if (dbPlayer.isWatched) {
+                            batch.update(playerRef, { isGuildMember: false });
+                        } else {
+                            batch.delete(playerRef);
+                        }
+                    }
+                }
+                
+                await batch.commit();
+                showMessage(`Senkronizasyon tamamlandı! ${newPlayersCount} yeni oyuncu eklendi, ${removedCount} oyuncu guild listesinden çıkarıldı.`, 'info', 10000);
+
+            } catch(error) {
+                showMessage(`Senkronizasyon sırasında hata: ${error.message}`, 'error');
+            } finally {
+                 syncGuildBtn.disabled = false;
+                 bulkCheckGuildBtn.disabled = false;
+                 syncGuildBtn.innerHTML = originalButtonContent;
+            }
+        });
+        
+        bulkCheckGuildBtn.addEventListener('click', async () => {
+            if (!isAuthReady) return showMessage("Veritabanı bekleniyor.", "error");
+
+            const originalButtonContent = bulkCheckGuildBtn.innerHTML;
+            bulkCheckGuildBtn.disabled = true;
+            syncGuildBtn.disabled = true;
+            bulkCheckGuildBtn.innerHTML = `<div class="loader"></div><span class="hidden sm:inline">Kontrol ediliyor...</span>`;
+            
+            const guildPlayers = Array.from(trackedPlayers.values()).filter(p => p.isGuildMember);
+            if(guildPlayers.length === 0){
+                showMessage('Kontrol edilecek guild oyuncusu bulunamadı.', 'error');
+                bulkCheckGuildBtn.disabled = false;
+                syncGuildBtn.disabled = false;
+                bulkCheckGuildBtn.innerHTML = originalButtonContent;
+                return;
+            }
+
+            try {
+                showMessage(`Toplu kontrol başlatıldı: ${guildPlayers.length} oyuncu...`, 'info', 60000);
+                const batch = writeBatch(db);
+                for(let i = 0; i < guildPlayers.length; i++){
+                    const player = guildPlayers[i];
+                    showMessage(`Kontrol ediliyor ${i + 1}/${guildPlayers.length}: ${player.Name}...`, 'info', 60000);
+                    try {
+                        const newStats = await fetchPlayerData(player.Name);
+                        const newHistoryEntry = { stats: newStats, timestamp: Date.now() };
+                        const updatedHistory = [...(player.history || []), newHistoryEntry];
+                        const playerRef = doc(db, `users/${userId}/trackedPlayers/${player.id}`);
+                        batch.update(playerRef, { 
+                            currentStats: newStats, 
+                            history: updatedHistory 
+                        });
+                    } catch (err) {
+                        console.error(`Oyuncu ${player.Name} güncellenirken hata:`, err.message);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 200)); // Rate limiting
+                }
+                await batch.commit();
+                showMessage(`Toplu kontrol tamamlandı! ${guildPlayers.length} oyuncu güncellendi.`, 'info');
+
+            } catch (error) {
+                 showMessage(`Toplu kontrol sırasında bir hata oluştu: ${error.message}`, 'error');
+            } finally {
+                bulkCheckGuildBtn.disabled = false;
+                syncGuildBtn.disabled = false;
+                bulkCheckGuildBtn.innerHTML = originalButtonContent;
+            }
+        });
+        
+        refreshReportsBtn.addEventListener('click', renderReports);
+
+        // --- Raporlama Fonksiyonları ---
+        function renderReports() {
+            const players = Array.from(trackedPlayers.values());
+            if (players.length === 0) {
+                document.getElementById('pvp-leaderboard').innerHTML = `<h3 class="font-bold text-lg text-red-400 mb-3">Veri Yok</h3><p class="text-gray-400">Rapor oluşturmak için önce oyuncu ekleyin.</p>`;
+                return;
+            }
+
+            const playerDiffs = players.map(p => {
+                const initial = p.initialStats;
+                const current = p.currentStats;
+                const killFameDiff = current.KillFame - initial.KillFame;
+                const deathFameDiff = current.DeathFame - initial.DeathFame;
+                const kda = deathFameDiff > 0 ? (killFameDiff / deathFameDiff).toFixed(2) : killFameDiff;
+
+                return {
+                    name: p.Name,
+                    killFameDiff,
+                    pveFameDiff: current.LifetimeStatistics.PvE.Total - initial.LifetimeStatistics.PvE.Total,
+                    gatheringFameDiff: (current.LifetimeStatistics.Gathering.All?.Total || 0) - (initial.LifetimeStatistics.Gathering.All?.Total || 0),
+                    craftingFameDiff: current.LifetimeStatistics.Crafting.Total - initial.LifetimeStatistics.Crafting.Total,
+                    kda: parseFloat(kda),
+                    isGuildMember: p.isGuildMember,
+                };
+            }).filter(p => p.killFameDiff > 0 || p.pveFameDiff > 0 || p.gatheringFameDiff > 0 || p.craftingFameDiff > 0);
+
+            // Liderlik Tabloları
+            renderLeaderboard('pvp-leaderboard', 'PvP Liderleri', ICONS.kill, playerDiffs, 'killFameDiff', 'text-red-400');
+            renderLeaderboard('pve-leaderboard', 'PvE Liderleri', ICONS.pve, playerDiffs, 'pveFameDiff', 'text-sky-400');
+            renderLeaderboard('gathering-leaderboard', 'Toplayıcılık Liderleri', ICONS.gathering, playerDiffs, 'gatheringFameDiff', 'text-green-400');
+            renderLeaderboard('crafting-leaderboard', 'Üretim Liderleri', ICONS.crafting, playerDiffs, 'craftingFameDiff', 'text-amber-400');
+
+            // KDA Listesi
+            renderKdaLeaderboard('kda-leaderboard', 'KDA Liderlik Tablosu', ICONS.kill, playerDiffs.filter(p => p.killFameDiff > 0).sort((a,b) => b.kda - a.kda));
+
+            // Gather'cılar Listesi
+            const gatherers = playerDiffs.filter(p => p.killFameDiff <= 0 && (p.pveFameDiff > 0 || p.gatheringFameDiff > 0));
+            renderGatherersList('gatherers-list', 'Sadece Gelişime Odaklananlar', ICONS.gathering, gatherers);
+            
+            // Guild İstatistikleri
+            renderGuildStats('guild-stats', 'Guild İstatistikleri', playerDiffs.filter(p => p.isGuildMember));
+        }
+        
+        function renderLeaderboard(elementId, title, icon, players, key, colorClass) {
+            const top5 = players.filter(p => p[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, 5);
+            let html = `<h3 class="font-bold text-lg ${colorClass} mb-3 flex items-center gap-2">${icon} ${title}</h3>`;
+            if (top5.length > 0) {
+                html += `<ol class="space-y-2 text-sm">`;
+                top5.forEach((p, index) => {
+                    html += `<li class="flex justify-between items-center border-b border-white/10 pb-1"><span>${index + 1}. ${p.name}</span> <span class="font-semibold text-green-400">+${formatNumber(p[key])}</span></li>`;
+                });
+                html += `</ol>`;
+            } else {
+                html += `<p class="text-gray-400 text-sm">Bu kategoride gelişim gösteren oyuncu bulunamadı.</p>`;
+            }
+            document.getElementById(elementId).innerHTML = html;
+        }
+
+        function renderKdaLeaderboard(elementId, title, icon, players) {
+            let html = `<h3 class="font-bold text-lg text-red-400 mb-3 flex items-center gap-2">${icon} ${title}</h3>`;
+             if (players.length > 0) {
+                html += `<div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-gray-400 uppercase bg-black/20"><tr>
+                <th scope="col" class="px-4 py-2">#</th>
+                <th scope="col" class="px-4 py-2">Oyuncu</th>
+                <th scope="col" class="px-4 py-2">KDA Oranı</th>
+                <th scope="col" class="px-4 py-2">Kill Fame</th>
+                </tr></thead><tbody>`;
+                players.slice(0, 10).forEach((p, index) => {
+                    html += `<tr class="border-b border-white/10">
+                    <td class="px-4 py-2 font-medium">${index+1}</td>
+                    <td class="px-4 py-2 font-medium">${p.name}</td>
+                    <td class="px-4 py-2 font-bold text-sky-400">${p.kda}</td>
+                    <td class="px-4 py-2 font-semibold text-green-400">+${formatNumber(p.killFameDiff)}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table></div>`;
+            } else {
+                html += `<p class="text-gray-400 text-sm">PvP yapan oyuncu bulunamadı.</p>`;
+            }
+            document.getElementById(elementId).innerHTML = html;
+        }
+
+        function renderGatherersList(elementId, title, icon, players) {
+            let html = `<h3 class="font-bold text-lg text-green-400 mb-3 flex items-center gap-2">${icon} ${title}</h3>`;
+            if (players.length > 0) {
+                html += `<div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-gray-400 uppercase bg-black/20"><tr>
+                <th scope="col" class="px-4 py-2">Oyuncu</th>
+                <th scope="col" class="px-4 py-2">PvE Fame</th>
+                <th scope="col" class="px-4 py-2">Gather Fame</th>
+                </tr></thead><tbody>`;
+                players.slice(0, 10).forEach((p, index) => {
+                    html += `<tr class="border-b border-white/10">
+                    <td class="px-4 py-2 font-medium">${p.name}</td>
+                    <td class="px-4 py-2 font-semibold text-green-400">+${formatNumber(p.pveFameDiff)}</td>
+                    <td class="px-4 py-2 font-semibold text-green-400">+${formatNumber(p.gatheringFameDiff)}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table></div>`;
+            } else {
+                html += `<p class="text-gray-400 text-sm">Bu kriterlere uyan oyuncu bulunamadı.</p>`;
+            }
+            document.getElementById(elementId).innerHTML = html;
+        }
+
+        function renderGuildStats(elementId, title, guildPlayers) {
+            let html = `<h3 class="font-bold text-lg text-violet-400 mb-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5l2-2h10l2 2v16"/><path d="M9 21v-8h6v8"/><path d="M9 9h6"/></svg>
+                ${title}
+            </h3>`;
+             if (guildPlayers.length > 0) {
+                const totalKillFame = guildPlayers.reduce((sum, p) => sum + p.killFameDiff, 0);
+                const totalPveFame = guildPlayers.reduce((sum, p) => sum + p.pveFameDiff, 0);
+                const totalGatheringFame = guildPlayers.reduce((sum, p) => sum + p.gatheringFameDiff, 0);
+                const totalCraftingFame = guildPlayers.reduce((sum, p) => sum + p.craftingFameDiff, 0);
+
+                const createStatRow = (icon, label, value, color) => `<div class="flex justify-between items-center border-b border-white/10 py-2.5"><span class="flex items-center gap-2">${icon} ${label}</span><span class="font-semibold ${color}">+${formatNumber(value)}</span></div>`;
+                
+                html += `<div class="space-y-2 text-sm">
+                    ${createStatRow(ICONS.kill, 'Toplam PvP Fame', totalKillFame, 'text-green-400')}
+                    ${createStatRow(ICONS.pve, 'Toplam PvE Fame', totalPveFame, 'text-green-400')}
+                    ${createStatRow(ICONS.gathering, 'Toplam Gather Fame', totalGatheringFame, 'text-green-400')}
+                    ${createStatRow(ICONS.crafting, 'Toplam Craft Fame', totalCraftingFame, 'text-green-400')}
+                </div>`;
+            } else {
+                html += `<p class="text-gray-400 text-sm">İstatistik oluşturmak için guild listesini senkronize edin ve oyuncuları kontrol edin.</p>`;
+            }
+             document.getElementById(elementId).innerHTML = html;
+        }
+
+
+        // --- Authentication ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) { 
+                userId = user.uid; 
+                isAuthReady = true; 
+                listenForPlayerChanges(); 
+            } else { 
+                isAuthReady = false; 
+                userId = null; 
+                if(unsubscribe) unsubscribe(); 
+                trackedPlayers.clear(); 
+                renderContent(); 
+            }
+        });
+
+        (async () => {
+            try {
+                await signInAnonymously(auth); 
+            } catch (error) { 
+                console.error("Authentication failed:", error); 
+                if (error.code === 'auth/configuration-not-found') {
+                    showMessage("Firebase Hatası: Projenizde 'Anonim' (Anonymous) oturum açma yöntemi etkinleştirilmemiş. Lütfen Firebase Authentication ayarlarından bu yöntemi etkinleştirin.", "error", 15000);
+                } else {
+                    showMessage("Kimlik doğrulama başarısız. Firebase proje ayarlarınızı kontrol edin.", "error");
+                }
+            }
+        })();
+    </script>
+</body>
+</html>
