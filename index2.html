@@ -85,10 +85,9 @@
                 </form>
             </div>
              <div class="mt-6 border-t border-sky-500/20 pt-4">
-                 <div class="flex justify-center bg-slate-900/50 p-1.5 rounded-xl max-w-lg mx-auto">
-                    <button data-tab="watchlist" class="tab-btn w-1/3 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300 active">Takip Listem</button>
-                    <button data-tab="guild" class="tab-btn w-1/3 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300">Guild Oyuncuları</button>
-                    <button data-tab="reports" class="tab-btn w-1/3 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300">Raporlar</button>
+                 <div class="flex justify-center bg-slate-900/50 p-1.5 rounded-xl max-w-md mx-auto">
+                    <button data-tab="watchlist" class="tab-btn w-1/2 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300 active">Takip Listem</button>
+                    <button data-tab="guild" class="tab-btn w-1/2 py-2.5 px-4 text-sm font-semibold rounded-lg text-slate-300">Guild Oyuncuları</button>
                 </div>
             </div>
         </header>
@@ -118,33 +117,6 @@
                     </div>
                  </div>
                 <div id="guildPlayerContainer" class="space-y-4"></div>
-            </div>
-
-            <div id="reports-content" class="tab-content">
-                <div class="premium-glass p-6 rounded-xl">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold text-white">Raporlar ve İstatistikler</h2>
-                        <button id="refreshReportsBtn" class="bg-gradient-to-r from-sky-500 to-violet-500 hover:from-sky-400 hover:to-violet-400 text-white font-bold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-sky-900/40">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                            <span>Yenile</span>
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <div id="pvp-leaderboard" class="bg-black/20 p-4 rounded-lg"></div>
-                        <div id="pve-leaderboard" class="bg-black/20 p-4 rounded-lg"></div>
-                        <div id="gathering-leaderboard" class="bg-black/20 p-4 rounded-lg"></div>
-                        <div id="crafting-leaderboard" class="bg-black/20 p-4 rounded-lg"></div>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2 space-y-6">
-                             <div id="kda-leaderboard" class="bg-black/20 p-4 rounded-lg"></div>
-                             <div id="gatherers-list" class="bg-black/20 p-4 rounded-lg"></div>
-                        </div>
-                        <div id="guild-stats" class="bg-black/20 p-4 rounded-lg lg:col-span-1"></div>
-                    </div>
-                </div>
             </div>
         </main>
         
@@ -197,7 +169,6 @@
         const syncGuildBtn = document.getElementById('syncGuildBtn');
         const bulkCheckGuildBtn = document.getElementById('bulkCheckGuildBtn');
         const mainPlayerContainers = document.querySelectorAll('#watchlistPlayerContainer, #guildPlayerContainer');
-        const refreshReportsBtn = document.getElementById('refreshReportsBtn');
 
         const DEFAULT_AVATAR = 'https://i.ibb.co/6cbH5Z1j/ghulam-rouhan-samdani-sketch1750596212277-removebg-preview.png';
         const ICONS = {
@@ -252,10 +223,6 @@
         }
         
         function renderContent() {
-             if (activeTab === 'reports') {
-                renderReports();
-                return;
-            }
             const allPlayers = Array.from(trackedPlayers.values()).sort((a, b) => a.Name.localeCompare(b.Name));
             
             // Render Watchlist
@@ -335,7 +302,6 @@
             </div>`;
         }
         
-        // --- Other render functions (createFameBlock, renderPlayerDetails, etc.) are identical and omitted for brevity ---
         function createFameBlock(icon, title, value, diff, getClass) {
             return `<div class="bg-black/20 p-3 rounded-lg"><p class="text-sm text-gray-400 flex items-center justify-center gap-2">${icon} ${title}</p><p class="text-lg font-semibold">${formatNumber(value)}</p><p class="text-md font-bold fame-diff ${getClass(diff)}">${formatNumber(diff)}</p></div>`;
         }
@@ -419,8 +385,9 @@
                     </div></div>`;
             }).join('');
 
+            // DEĞİŞTİRİLEN KISIM: Sabit yükseklik ve kaydırma çubuğu kaldırıldı.
             return `<div class="bg-black/20 p-4 rounded-lg mt-6">
-                        <h3 class="font-bold text-lg text-sky-400 mb-3">Gelişim Geçmişi</h3>${summaryHTML}<div class="max-h-64 overflow-y-auto pr-2">${historyHTML}</div>
+                        <h3 class="font-bold text-lg text-sky-400 mb-3">Gelişim Geçmişi</h3>${summaryHTML}<div>${historyHTML}</div>
                     </div>`;
         }
 
@@ -731,137 +698,6 @@
                 bulkCheckGuildBtn.innerHTML = originalButtonContent;
             }
         });
-        
-        refreshReportsBtn.addEventListener('click', renderReports);
-
-        // --- Raporlama Fonksiyonları ---
-        function renderReports() {
-            const players = Array.from(trackedPlayers.values());
-            if (players.length === 0) {
-                document.getElementById('pvp-leaderboard').innerHTML = `<h3 class="font-bold text-lg text-red-400 mb-3">Veri Yok</h3><p class="text-gray-400">Rapor oluşturmak için önce oyuncu ekleyin.</p>`;
-                return;
-            }
-
-            const playerDiffs = players.map(p => {
-                const initial = p.initialStats;
-                const current = p.currentStats;
-                const killFameDiff = current.KillFame - initial.KillFame;
-                const deathFameDiff = current.DeathFame - initial.DeathFame;
-                const kda = deathFameDiff > 0 ? (killFameDiff / deathFameDiff).toFixed(2) : killFameDiff;
-
-                return {
-                    name: p.Name,
-                    killFameDiff,
-                    pveFameDiff: current.LifetimeStatistics.PvE.Total - initial.LifetimeStatistics.PvE.Total,
-                    gatheringFameDiff: (current.LifetimeStatistics.Gathering.All?.Total || 0) - (initial.LifetimeStatistics.Gathering.All?.Total || 0),
-                    craftingFameDiff: current.LifetimeStatistics.Crafting.Total - initial.LifetimeStatistics.Crafting.Total,
-                    kda: parseFloat(kda),
-                    isGuildMember: p.isGuildMember,
-                };
-            }).filter(p => p.killFameDiff > 0 || p.pveFameDiff > 0 || p.gatheringFameDiff > 0 || p.craftingFameDiff > 0);
-
-            // Liderlik Tabloları
-            renderLeaderboard('pvp-leaderboard', 'PvP Liderleri', ICONS.kill, playerDiffs, 'killFameDiff', 'text-red-400');
-            renderLeaderboard('pve-leaderboard', 'PvE Liderleri', ICONS.pve, playerDiffs, 'pveFameDiff', 'text-sky-400');
-            renderLeaderboard('gathering-leaderboard', 'Toplayıcılık Liderleri', ICONS.gathering, playerDiffs, 'gatheringFameDiff', 'text-green-400');
-            renderLeaderboard('crafting-leaderboard', 'Üretim Liderleri', ICONS.crafting, playerDiffs, 'craftingFameDiff', 'text-amber-400');
-
-            // KDA Listesi
-            renderKdaLeaderboard('kda-leaderboard', 'KDA Liderlik Tablosu', ICONS.kill, playerDiffs.filter(p => p.killFameDiff > 0).sort((a,b) => b.kda - a.kda));
-
-            // Gather'cılar Listesi
-            const gatherers = playerDiffs.filter(p => p.killFameDiff <= 0 && (p.pveFameDiff > 0 || p.gatheringFameDiff > 0));
-            renderGatherersList('gatherers-list', 'Sadece Gelişime Odaklananlar', ICONS.gathering, gatherers);
-            
-            // Guild İstatistikleri
-            renderGuildStats('guild-stats', 'Guild İstatistikleri', playerDiffs.filter(p => p.isGuildMember));
-        }
-        
-        function renderLeaderboard(elementId, title, icon, players, key, colorClass) {
-            const top5 = players.filter(p => p[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, 5);
-            let html = `<h3 class="font-bold text-lg ${colorClass} mb-3 flex items-center gap-2">${icon} ${title}</h3>`;
-            if (top5.length > 0) {
-                html += `<ol class="space-y-2 text-sm">`;
-                top5.forEach((p, index) => {
-                    html += `<li class="flex justify-between items-center border-b border-white/10 pb-1"><span>${index + 1}. ${p.name}</span> <span class="font-semibold text-green-400">+${formatNumber(p[key])}</span></li>`;
-                });
-                html += `</ol>`;
-            } else {
-                html += `<p class="text-gray-400 text-sm">Bu kategoride gelişim gösteren oyuncu bulunamadı.</p>`;
-            }
-            document.getElementById(elementId).innerHTML = html;
-        }
-
-        function renderKdaLeaderboard(elementId, title, icon, players) {
-            let html = `<h3 class="font-bold text-lg text-red-400 mb-3 flex items-center gap-2">${icon} ${title}</h3>`;
-             if (players.length > 0) {
-                html += `<div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-gray-400 uppercase bg-black/20"><tr>
-                <th scope="col" class="px-4 py-2">#</th>
-                <th scope="col" class="px-4 py-2">Oyuncu</th>
-                <th scope="col" class="px-4 py-2">KDA Oranı</th>
-                <th scope="col" class="px-4 py-2">Kill Fame</th>
-                </tr></thead><tbody>`;
-                players.slice(0, 10).forEach((p, index) => {
-                    html += `<tr class="border-b border-white/10">
-                    <td class="px-4 py-2 font-medium">${index+1}</td>
-                    <td class="px-4 py-2 font-medium">${p.name}</td>
-                    <td class="px-4 py-2 font-bold text-sky-400">${p.kda}</td>
-                    <td class="px-4 py-2 font-semibold text-green-400">+${formatNumber(p.killFameDiff)}</td>
-                    </tr>`;
-                });
-                html += `</tbody></table></div>`;
-            } else {
-                html += `<p class="text-gray-400 text-sm">PvP yapan oyuncu bulunamadı.</p>`;
-            }
-            document.getElementById(elementId).innerHTML = html;
-        }
-
-        function renderGatherersList(elementId, title, icon, players) {
-            let html = `<h3 class="font-bold text-lg text-green-400 mb-3 flex items-center gap-2">${icon} ${title}</h3>`;
-            if (players.length > 0) {
-                html += `<div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-gray-400 uppercase bg-black/20"><tr>
-                <th scope="col" class="px-4 py-2">Oyuncu</th>
-                <th scope="col" class="px-4 py-2">PvE Fame</th>
-                <th scope="col" class="px-4 py-2">Gather Fame</th>
-                </tr></thead><tbody>`;
-                players.slice(0, 10).forEach((p, index) => {
-                    html += `<tr class="border-b border-white/10">
-                    <td class="px-4 py-2 font-medium">${p.name}</td>
-                    <td class="px-4 py-2 font-semibold text-green-400">+${formatNumber(p.pveFameDiff)}</td>
-                    <td class="px-4 py-2 font-semibold text-green-400">+${formatNumber(p.gatheringFameDiff)}</td>
-                    </tr>`;
-                });
-                html += `</tbody></table></div>`;
-            } else {
-                html += `<p class="text-gray-400 text-sm">Bu kriterlere uyan oyuncu bulunamadı.</p>`;
-            }
-            document.getElementById(elementId).innerHTML = html;
-        }
-
-        function renderGuildStats(elementId, title, guildPlayers) {
-            let html = `<h3 class="font-bold text-lg text-violet-400 mb-3 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5l2-2h10l2 2v16"/><path d="M9 21v-8h6v8"/><path d="M9 9h6"/></svg>
-                ${title}
-            </h3>`;
-             if (guildPlayers.length > 0) {
-                const totalKillFame = guildPlayers.reduce((sum, p) => sum + p.killFameDiff, 0);
-                const totalPveFame = guildPlayers.reduce((sum, p) => sum + p.pveFameDiff, 0);
-                const totalGatheringFame = guildPlayers.reduce((sum, p) => sum + p.gatheringFameDiff, 0);
-                const totalCraftingFame = guildPlayers.reduce((sum, p) => sum + p.craftingFameDiff, 0);
-
-                const createStatRow = (icon, label, value, color) => `<div class="flex justify-between items-center border-b border-white/10 py-2.5"><span class="flex items-center gap-2">${icon} ${label}</span><span class="font-semibold ${color}">+${formatNumber(value)}</span></div>`;
-                
-                html += `<div class="space-y-2 text-sm">
-                    ${createStatRow(ICONS.kill, 'Toplam PvP Fame', totalKillFame, 'text-green-400')}
-                    ${createStatRow(ICONS.pve, 'Toplam PvE Fame', totalPveFame, 'text-green-400')}
-                    ${createStatRow(ICONS.gathering, 'Toplam Gather Fame', totalGatheringFame, 'text-green-400')}
-                    ${createStatRow(ICONS.crafting, 'Toplam Craft Fame', totalCraftingFame, 'text-green-400')}
-                </div>`;
-            } else {
-                html += `<p class="text-gray-400 text-sm">İstatistik oluşturmak için guild listesini senkronize edin ve oyuncuları kontrol edin.</p>`;
-            }
-             document.getElementById(elementId).innerHTML = html;
-        }
 
 
         // --- Authentication ---
